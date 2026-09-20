@@ -1,0 +1,30 @@
+name: openrct2
+
+services:
+  server:
+    container_name: openrct2-server
+    image: openrct2/openrct2-cli:0.5.5@sha256:d516dc3784b863ac24225457f33e29f9cfbb98e408d22725a0f742720792eac3
+    user: "1000:1001"
+    init: true
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    command:
+      - host
+      - /home/openrct2/.config/OpenRCT2/save/${PARK_FILE:-server.park}
+      - --port=11753
+      - --address=0.0.0.0
+      - --user-data-path=/home/openrct2/.config/OpenRCT2
+    ports:
+      - "100.73.141.107:11753:11753/tcp"
+    volumes:
+      - ./data:/home/openrct2/.config/OpenRCT2
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
