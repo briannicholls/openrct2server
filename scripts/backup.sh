@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+BACKUP_DIR="$ROOT_DIR/backups"
+was_running=0
+restarted=0
+
+die() {
+    printf 'Error: %s\n' "$*" >&2
+    exit 1
+}
+
+numeric_env_value() {
+    local key=$1
+    local fallback=$2
+    local value
+
+    value=$(grep -E "^${key}=[0-9]+$" "$ROOT_DIR/.env" 2>/dev/null | tail -n 1 | cut -d= -f2 || true)
+    printf '%s' "${value:-$fallback}"
+}
+
+restart_on_failure() {
+    if [[ $was_running -eq 1 && $restarted -eq 0 ]]; then
+        printf 'Restarting the server after backup interruption...\n' >&2
+        (cd "$ROOT_DIR" && docker compose up -d server >/dev/null) || true
+    fi
+}
+
+command -v docker >/dev/null 2>&1 || die "Docker is not installed."
+command -v tar >/dev/null 2>&1 || die "tar is not installed."
+command -v sha256sum >/dev/null 2>&1 || die "sha256sum is not installed."
+[[ -f "$ROOT_DIR/.env" ]] || die "Run scripts/setup.sh first."
+[[ -d "$ROOT_DIR/data/save" ]] || die "No server data was found."
+
+backup_retention=$(numeric_env_value BACKUP_RETENTION_DAYS 30)
+log_retention=$(numeric_env_value LOG_RETENTION_DAYS 14)
+timestamp=$(date -u +%Y%m%dT%H%M%SZ)
+archive_name="openrct2-${timestamp}.tar.gz"
+archive="$BACKUP_DIR/$archive_name"
+temporary_archive="${archive}.tmp"
+
+mkdir -p "$BACKUP_DIR"
+[[ ! -e "$archive" && ! -e "$temporary_archive" ]] || die "A backup for this second already exists; retry shortly."
+
+if [[ -n "$(cd "$ROOT_DIR" && docker compose ps --status running -q server)" ]]; then
+    was_running=1
+    trap restart_on_failure EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    (cd "$ROOT_DIR" && docker compose stop -t 30 server)
+fi
+
+tar \
+    --exclude='data/chatlogs' \
+    --exclude='data/serverlogs' \
+    --exclude='data/*.idx' \
+    -C "$ROOT_DIR" \
+    -czf "$temporary_archive" \
+    data
+mv "$temporary_archive" "$archive"
+(
+    cd "$BACKUP_DIR"
+    sha256sum "$archive_name" > "${archive_name}.sha256"
+)
+
+for log_dir in "$ROOT_DIR/data/chatlogs" "$ROOT_DIR/data/serverlogs"; do
+    [[ -d "$log_dir" ]] || continue
+    find "$log_dir" -type f -name '*.txt' -mtime +0 -exec gzip -f -- {} +
+    find "$log_dir" -type f \( -name '*.txt' -o -name '*.txt.gz' \) -mtime +"$log_retention" -delete
+done
+
+find "$BACKUP_DIR" -maxdepth 1 -type f \
+    \( -name 'openrct2-*.tar.gz' -o -name 'openrct2-*.tar.gz.sha256' \) \
+    -mtime +"$backup_retention" -delete
+
+if [[ $was_running -eq 1 ]]; then
+    (cd "$ROOT_DIR" && docker compose up -d server)
+    restarted=1
+fi
+trap - EXIT INT TERM
+
+printf 'Backup created: %s\n' "$archive"
+printf 'Copy the archive and checksum off this VM.\n'

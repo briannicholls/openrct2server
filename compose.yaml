@@ -4,25 +4,38 @@ services:
   server:
     container_name: openrct2-server
     image: openrct2/openrct2-cli:0.5.5@sha256:d516dc3784b863ac24225457f33e29f9cfbb98e408d22725a0f742720792eac3
-    user: "1000:1001"
+    platform: linux/amd64
+    user: "${PUID:-1000}:${PGID:-1000}"
+    working_dir: /data
     init: true
     restart: unless-stopped
     stdin_open: true
     tty: true
     command:
       - host
-      - /home/openrct2/.config/OpenRCT2/save/${PARK_FILE:-server.park}
+      - /data/save/${PARK_FILE:-server.park}
       - --port=11753
       - --address=0.0.0.0
-      - --user-data-path=/home/openrct2/.config/OpenRCT2
+      - --user-data-path=/data
     ports:
-      - "100.73.141.107:11753:11753/tcp"
+      - "${BIND_ADDRESS:-0.0.0.0}:11753:11753/tcp"
     volumes:
-      - ./data:/home/openrct2/.config/OpenRCT2
+      - ./data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
     cap_drop:
       - ALL
     pids_limit: 256
+    mem_limit: ${MEMORY_LIMIT:-1g}
+    cpus: ${CPU_LIMIT:-1.0}
     stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 bash -c '>/dev/tcp/127.0.0.1/11753'"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     logging:
       driver: json-file
       options:
