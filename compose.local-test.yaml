@@ -1,0 +1,16 @@
+services:
+  server:
+    container_name: openrct2-server-local-test
+    restart: unless-stopped
+    command:
+      - host
+      - /data/save/${PARK_FILE:-server.park}
+      - --port=${TEST_PORT:-11754}
+      - --address=0.0.0.0
+      - --user-data-path=/data
+    ports: !override
+      - "${TEST_BIND_ADDRESS:-127.0.0.1}:${TEST_LOCAL_PORT:-${TEST_PORT:-11754}}:${TEST_PORT:-11754}/tcp"
+    volumes: !override
+      - ./backups/local-test/data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 bash -c '>/dev/tcp/127.0.0.1/${TEST_PORT:-11754}'"]
