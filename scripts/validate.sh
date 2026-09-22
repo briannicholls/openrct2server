@@ -9,6 +9,12 @@ for script in scripts/*.sh; do
 done
 
 docker compose --env-file .env.example config --quiet
+docker compose \
+    --env-file .env.example \
+    --project-name openrct2-local-test \
+    --file compose.yaml \
+    --file compose.local-test.yaml \
+    config --quiet
 
 grep -q '^advertise = true$' config/config.ini
 grep -q '^known_keys_only = false$' config/config.ini

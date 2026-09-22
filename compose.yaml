@@ -9,8 +9,8 @@ services:
     working_dir: /data
     init: true
     restart: unless-stopped
-    stdin_open: true
-    tty: true
+    environment:
+      OPENRCT2_NO_REPL: "1"
     command:
       - host
       - /data/save/${PARK_FILE:-server.park}
