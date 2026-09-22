@@ -61,18 +61,6 @@ mkdir -p \
     "$ROOT_DIR/data/save" \
     "$ROOT_DIR/data/serverlogs"
 
-if [[ ! -f "$ROOT_DIR/data/config.ini" ]]; then
-    cp "$ROOT_DIR/config/config.ini" "$ROOT_DIR/data/config.ini"
-else
-    printf 'Preserving existing data/config.ini\n'
-fi
-
-if [[ ! -f "$ROOT_DIR/data/groups.json" ]]; then
-    cp "$ROOT_DIR/config/groups.json" "$ROOT_DIR/data/groups.json"
-else
-    printf 'Preserving existing data/groups.json\n'
-fi
-
 if [[ -f "$park_destination" ]]; then
     cmp -s "$PARK_SOURCE" "$park_destination" \
         || die "$park_destination already exists and differs; use backup/restore instead of overwriting it."
@@ -95,6 +83,8 @@ if [[ ! -f "$ROOT_DIR/.env" ]]; then
         printf 'PUID=%s\n' "$(id -u)"
         printf 'PGID=%s\n' "$(id -g)"
         printf 'BIND_ADDRESS=0.0.0.0\n'
+        printf 'HOST_PORT=11753\n'
+        printf 'SERVER_PORT=11753\n'
         printf 'MEMORY_LIMIT=1g\n'
         printf 'CPU_LIMIT=1.0\n'
         printf 'BACKUP_RETENTION_DAYS=30\n'
@@ -110,13 +100,16 @@ else
     ensure_env_value PUID "$(id -u)"
     ensure_env_value PGID "$(id -g)"
     ensure_env_value BIND_ADDRESS 0.0.0.0
+    ensure_env_value HOST_PORT 11753
+    ensure_env_value SERVER_PORT 11753
     ensure_env_value MEMORY_LIMIT 1g
     ensure_env_value CPU_LIMIT 1.0
     ensure_env_value BACKUP_RETENTION_DAYS 30
     ensure_env_value LOG_RETENTION_DAYS 14
 fi
 
-chmod 600 "$ROOT_DIR/.env" "$ROOT_DIR/data/config.ini" "$ROOT_DIR/data/groups.json"
+chmod 600 "$ROOT_DIR/.env"
+chmod 644 "$ROOT_DIR/config/config.ini" "$ROOT_DIR/config/groups.json"
 [[ ! -f "$ROOT_DIR/data/users.json" ]] || chmod 600 "$ROOT_DIR/data/users.json"
 
 (
@@ -125,7 +118,7 @@ chmod 600 "$ROOT_DIR/.env" "$ROOT_DIR/data/config.ini" "$ROOT_DIR/data/groups.js
 )
 
 printf '\nSetup complete. Next steps:\n'
-printf '1. Keep TCP 11753 restricted to the administrator while bootstrapping admin access.\n'
+printf '1. Review config/config.ini and .env.\n'
 printf '2. Start the server with: docker compose up -d\n'
 printf '3. Follow startup with: docker compose logs -f server\n'
-printf '4. After promoting an administrator, open TCP 11753 publicly and run scripts/check.sh.\n'
+printf '4. Verify public registration with: scripts/check.sh\n'

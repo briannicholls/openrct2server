@@ -11,16 +11,21 @@ services:
     restart: unless-stopped
     environment:
       OPENRCT2_NO_REPL: "1"
+    entrypoint:
+      - /bin/bash
+      - /opt/openrct2/container-entrypoint.sh
     command:
       - host
       - /data/save/${PARK_FILE:-server.park}
-      - --port=11753
+      - --port=${SERVER_PORT:-11753}
       - --address=0.0.0.0
       - --user-data-path=/data
     ports:
-      - "${BIND_ADDRESS:-0.0.0.0}:11753:11753/tcp"
+      - "${BIND_ADDRESS:-0.0.0.0}:${HOST_PORT:-${SERVER_PORT:-11753}}:${SERVER_PORT:-11753}/tcp"
     volumes:
       - ./data:/data
+      - ./config:/config:ro
+      - ./scripts/container-entrypoint.sh:/opt/openrct2/container-entrypoint.sh:ro
     read_only: true
     tmpfs:
       - /tmp:size=64m,mode=1777
@@ -31,7 +36,7 @@ services:
     cpus: ${CPU_LIMIT:-1.0}
     stop_grace_period: 30s
     healthcheck:
-      test: ["CMD-SHELL", "timeout 3 bash -c '>/dev/tcp/127.0.0.1/11753'"]
+      test: ["CMD-SHELL", "timeout 3 bash -c '>/dev/tcp/127.0.0.1/${SERVER_PORT:-11753}'"]
       interval: 60s
       timeout: 5s
       retries: 3

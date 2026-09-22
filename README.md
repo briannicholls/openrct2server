@@ -1,215 +1,142 @@
-# MLG Park
+# $MLG B5 - Ultimate Fun Land
 
-Public OpenRCT2 `0.5.5` dedicated server. It appears in the in-game server browser and allows every player to build.
+This repository runs one persistent public OpenRCT2 server. Docker Compose owns
+the game process, and Playit exposes it through:
 
-The park and player data are not stored in Git. The server manager supplies the park during setup.
+```text
+della-avoided.tun.ply.gg:39970
+```
 
-## Requirements
+There is no alternate test or private deployment. Test changes on the same
+configuration and use `scripts/update.sh` to apply them safely.
 
-- Ubuntu 24.04 amd64 VM
-- 2 vCPU, 2 GB RAM, and 10 GB disk recommended
+## Layout
+
+- `config/config.ini`: the only editable OpenRCT2 server configuration
+- `config/groups.json`: the only editable permission-group configuration
+- `.env`: host binding, game port, limits, and active park filename
+- `data/`: generated runtime state, users, logs, objects, plugins, and saves
+- `backups/`: timestamped archives and pre-restore state
+- `compose.yaml`: the only deployment definition
+
+At every container start, the tracked files under `config/` are copied into
+`data/`. Do not edit `data/config.ini` or `data/groups.json`; those runtime
+copies are replaced on restart.
+
+## Public Configuration
+
+The current home-hosted Playit deployment uses these `.env` values:
+
+```dotenv
+BIND_ADDRESS=127.0.0.1
+HOST_PORT=11754
+SERVER_PORT=39970
+```
+
+Playit forwards `della-avoided.tun.ply.gg:39970` to
+`127.0.0.1:11754`. The OpenRCT2 container listens on port `39970`, so its
+master-server advertisement matches the public endpoint.
+
+The public identity lives in `config/config.ini`:
+
+```ini
+advertise = true
+advertise_address = "della-avoided.tun.ply.gg"
+server_name = "{RED}$M{WHITE}L{BABYBLUE}G{WHITE} B5 - Ultimate Fun Land"
+server_description = "Buy $MLG. Don't focus on no girls, just buy $MLG."
+server_greeting = "https://mlg.lol"
+```
+
+The Playit agent is managed independently by the enabled user service
+`playit-mlg-park.service`. Its secret is not stored in this repository.
+
+## Initial Setup
+
+Requirements:
+
 - Docker Engine with the Compose plugin
-- Static public IPv4 address
-- Public inbound TCP `11753`
-- OpenRCT2 `0.5.5` clients, network version `0.5.5-0`
+- Bash, curl, tar, and sha256sum
+- A `.park` or legacy `.sv6` save
 
-Install Docker using the [official Ubuntu instructions](https://docs.docker.com/engine/install/ubuntu/), then verify:
-
-```bash
-docker version
-docker compose version
-```
-
-## Test Here First
-
-The local test uses a separate container, data directory, and port. It does not interrupt the existing server.
-
-Start a test available only on this machine:
+Initialize a new host without overwriting existing server state:
 
 ```bash
-./scripts/test-local.sh up
-```
-
-Manually connect OpenRCT2 to:
-
-```text
-127.0.0.1:11754
-```
-
-To connect from another device, bind the test to this server's LAN or Tailscale IP:
-
-```bash
-TEST_BIND_ADDRESS=SERVER_IP ./scripts/test-local.sh up
-```
-
-Then connect to `SERVER_IP:11754`.
-
-Useful test commands:
-
-```bash
-./scripts/test-local.sh status
-./scripts/test-local.sh logs
-./scripts/test-local.sh down
-./scripts/test-local.sh reset
-```
-
-`down` preserves the test park. `reset` removes the test data so the next `up` starts from the source park again. The test container uses Docker's `unless-stopped` restart policy.
-
-### Test The Public Browser
-
-This is feasible only if this machine can receive public Internet traffic. Forward TCP `11754` through the router/provider firewall, then run:
-
-```bash
-TEST_BIND_ADDRESS=0.0.0.0 TEST_ADVERTISE=1 ./scripts/test-local.sh up
-```
-
-Look for `MLG Park` in the browser after about one minute. Check registration with:
-
-```bash
-./scripts/test-local.sh logs
-```
-
-Successful registration prints `Server successfully registered on master server`.
-
-Stop the public test when finished:
-
-```bash
-./scripts/test-local.sh down
-```
-
-If the connection is behind CGNAT or TCP `11754` cannot be forwarded, the public-browser test cannot work from this machine. The normal local test still verifies the application and park.
-
-For Starlink, enable the `Public IP` option on an eligible Priority plan. Because the standard Starlink router does not provide port forwarding, place it in bypass mode, use a third-party router, and forward TCP `11754` to this server before starting the advertised test.
-
-Behind CGNAT, a raw TCP relay such as Playit can be used instead. Create a custom TCP tunnel targeting `127.0.0.1:11754`, then start the test with the hostname and public port assigned by the relay:
-
-```bash
-TEST_BIND_ADDRESS=127.0.0.1 \
-TEST_LOCAL_PORT=11754 \
-TEST_PORT=PUBLIC_PORT \
-TEST_ADVERTISE=1 \
-TEST_ADVERTISE_ADDRESS=PUBLIC_HOSTNAME \
-./scripts/test-local.sh up
-```
-
-Store these `TEST_*` values in the ignored `.env` file when the relay should survive Docker restarts. Run the relay agent as a boot service as well; the Docker restart policy cannot restart an agent running as a temporary shell process.
-
-On this host, Playit runs as a persistent user service:
-
-```bash
-systemctl --user status playit-mlg-park.service
-systemctl --user restart playit-mlg-park.service
-journalctl --user -u playit-mlg-park.service
-```
-
-The user has systemd lingering enabled, so the relay starts during boot without an interactive login.
-
-## Deploy To The VM
-
-1. Allow inbound TCP `11753` from the administrator's public IP in the VM provider firewall.
-
-2. Clone the deployment branch:
-
-```bash
-sudo mkdir -p /opt/openrct2
-sudo chown "$USER":"$USER" /opt/openrct2
-git clone --branch public-server \
-  https://github.com/briannicholls/openrct2server.git \
-  /opt/openrct2
-cd /opt/openrct2
-```
-
-3. Transfer `server.park` to the VM, then configure it:
-
-```bash
-./scripts/setup.sh /path/to/server.park
-```
-
-To retain an existing administrator identity, also transfer `users.json` and run:
-
-```bash
-./scripts/setup.sh /path/to/server.park /path/to/users.json
-```
-
-4. Start the server:
-
-```bash
-docker compose up -d
-docker compose logs -f server
-```
-
-5. If no `users.json` was supplied, connect manually while the firewall is restricted and promote the administrator:
-
-```bash
-docker attach openrct2-server
-```
-
-```text
-network.players
-network.players[1].group = 0
-```
-
-Replace `1` with the correct player index. Detach without stopping the server with `Ctrl-P`, then `Ctrl-Q`.
-
-6. Open provider-firewall TCP `11753` to `0.0.0.0/0` and verify:
-
-```bash
+./scripts/setup.sh /absolute/path/to/park.park
+./scripts/update.sh
 ./scripts/check.sh
 ```
 
-The server should become healthy and appear as `MLG Park` in the in-game browser within approximately one minute.
+`setup.sh` copies the park into `data/save/`, creates `.env` when needed, and
+refuses to replace an existing destination park.
 
-Docker-published ports can bypass some UFW forwarding rules, so use the VM provider firewall as the primary perimeter. Public UDP access is not required.
+## Apply Changes
 
-## Routine Commands
+Edit `config/config.ini` or `config/groups.json`, then apply and verify them:
 
 ```bash
-docker compose ps
-docker compose logs -f server
-docker compose restart server
+./scripts/update.sh
+```
+
+Replace the active park and apply configuration in one operation:
+
+```bash
+./scripts/update.sh /absolute/path/to/replacement.park
+```
+
+The update command creates a full backup, stops the server, installs the park,
+clears stale autosaves, restarts the server, waits for health, and confirms the
+public server-list entry. If startup or registration fails, it restores the
+previous config, park, and `.env` and starts the prior state again.
+
+## Operations
+
+```bash
+docker compose up -d
 docker compose stop
-docker compose up -d
+docker compose logs -f server
 ./scripts/check.sh
+./scripts/check.sh --local
+./scripts/validate.sh
 ```
 
-The container automatically starts after a VM reboot unless it was manually stopped.
+The service uses `restart: unless-stopped`, so Docker restores it after a host
+reboot or process failure. The container filesystem is read-only, capabilities
+are dropped, and writable paths are limited to runtime data and temporary
+files.
 
 ## Backups
 
-Create a consistent backup:
+Create a consistent archive of runtime data, canonical configuration, and
+deployment settings:
 
 ```bash
 ./scripts/backup.sh
 ```
 
-Restore one:
+A standalone backup refuses to restart the server when unapplied config or
+deployment changes exist; apply those changes with `scripts/update.sh` first.
+
+Restore one archive after reviewing its contents:
 
 ```bash
-./scripts/restore.sh /path/to/openrct2-YYYYMMDDTHHMMSSZ.tar.gz
+tar -tzf backups/openrct2-YYYYMMDDTHHMMSSZ.tar.gz
+./scripts/restore.sh backups/openrct2-YYYYMMDDTHHMMSSZ.tar.gz
 ```
 
-Schedule `scripts/backup.sh` nightly. Backups default to 30-day retention and application logs to 14 days. Copy `backups/*.tar.gz` and their `.sha256` files off the VM because local backups do not protect against VM or disk loss.
+Restore verifies an adjacent SHA-256 checksum when present, rejects unsafe
+archive paths, creates a safety backup, and retains the previous raw state.
 
-## Important Files
+Each backup run removes old compressed backups and runtime logs according to
+`BACKUP_RETENTION_DAYS` and `LOG_RETENTION_DAYS` in `.env`.
 
-| Path | Purpose |
-| --- | --- |
-| `compose.yaml` | Public server runtime |
-| `config/` | Defaults copied during first setup |
-| `.env` | Local deployment settings; ignored by Git |
-| `data/` | Live parks, users, objects, and logs; ignored by Git |
-| `backups/` | Local backups and test data; ignored by Git |
+## Moving Hosts
 
-Edit `data/config.ini` to change a deployed server. Editing `config/config.ini` affects only future installations.
+Use the same files and workflow on a direct-connect VM. Set the externally
+reachable game port in both `HOST_PORT` and `SERVER_PORT`, bind the required
+interface, update `advertise_address`, and allow that TCP port through the
+provider firewall. The Compose and update logic do not change.
 
-## Security Model
+## Secrets
 
-This is intentionally an open-builder server with no password. Any player can modify or damage the park. Keep backups and establish an administrator before opening the firewall publicly.
-
-OpenRCT2 uses its native TCP protocol, not HTTPS, so game and chat traffic is not protected by TLS.
-
-## Validate Changes
-
-```bash
-./scripts/validate.sh
-```
+Keep `.env`, `data/`, `backups/`, Playit credentials, and server-generated user
+records out of Git. Never commit API keys or passwords in plugin configuration.
