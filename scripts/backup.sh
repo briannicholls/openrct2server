@@ -117,6 +117,9 @@ tar \
     --exclude='data/chatlogs' \
     --exclude='data/serverlogs' \
     --exclude='data/*.idx' \
+    --exclude='data/.pending-resume-save' \
+    --exclude='data/.active-resume-save' \
+    --exclude='data/.startup-attempts' \
     -C "$ROOT_DIR" \
     -czf "$temporary_archive" \
     data \

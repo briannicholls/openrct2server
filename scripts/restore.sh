@@ -80,6 +80,10 @@ rollback() {
             recovery_ok=0
         fi
         if [[ $WAS_RUNNING -eq 1 && $recovery_ok -eq 1 ]]; then
+            rm -f -- \
+                "$ROOT_DIR/data/.pending-resume-save" \
+                "$ROOT_DIR/data/.active-resume-save" \
+                "$ROOT_DIR/data/.startup-attempts"
             if ! (cd "$ROOT_DIR" && docker compose up -d --force-recreate server >/dev/null) \
                 || ! wait_for_health; then
                 recovery_ok=0
@@ -218,6 +222,10 @@ install -m 644 "$STAGING_DIR/restore-groups.json" "$ROOT_DIR/config/groups.json"
 install -m 600 "$STAGING_DIR/restore.env" "$ROOT_DIR/.env"
 
 if [[ $WAS_RUNNING -eq 1 ]]; then
+    rm -f -- \
+        "$ROOT_DIR/data/.pending-resume-save" \
+        "$ROOT_DIR/data/.active-resume-save" \
+        "$ROOT_DIR/data/.startup-attempts"
     (cd "$ROOT_DIR" && docker compose up -d --force-recreate server)
     wait_for_health || die "The restored service did not become healthy."
     (cd "$ROOT_DIR" && docker compose config) \

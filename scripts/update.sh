@@ -133,6 +133,10 @@ rollback() {
         fi
 
         if [[ $recovery_ok -eq 1 ]]; then
+            rm -f -- \
+                "$ROOT_DIR/data/.pending-resume-save" \
+                "$ROOT_DIR/data/.active-resume-save" \
+                "$ROOT_DIR/data/.startup-attempts"
             if ! (cd "$ROOT_DIR" && docker compose up -d --force-recreate server >/dev/null) \
                 || ! wait_for_health; then
                 recovery_ok=0
@@ -240,9 +244,17 @@ if [[ -n "$park_source" ]]; then
     install -m 600 "$ROLLBACK_DIR/new-park" "$ROOT_DIR/data/save/$new_park_name"
     set_env_value PARK_FILE "$new_park_name"
     rm -rf -- "$ROOT_DIR/data/save/autosave"
+    rm -f -- \
+        "$ROOT_DIR/data/.pending-resume-save" \
+        "$ROOT_DIR/data/.active-resume-save" \
+        "$ROOT_DIR/data/.startup-attempts"
     mkdir -p "$ROOT_DIR/data/save/autosave"
 fi
 
+rm -f -- \
+    "$ROOT_DIR/data/.pending-resume-save" \
+    "$ROOT_DIR/data/.active-resume-save" \
+    "$ROOT_DIR/data/.startup-attempts"
 (cd "$ROOT_DIR" && docker compose up -d server)
 wait_for_health || die "The updated server did not become healthy."
 (cd "$ROOT_DIR" && docker compose config) \

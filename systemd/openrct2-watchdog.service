@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenRCT2 public-listing watchdog
+After=network-online.target playit-mlg-park.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/games/openrct2
+ExecStart=%h/games/openrct2/scripts/watchdog.sh
+TimeoutStartSec=10min
+UMask=0077
+NoNewPrivileges=true

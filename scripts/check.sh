@@ -103,7 +103,12 @@ fi
 
 server_list=$(curl --fail --silent --show-error --max-time 15 \
     "https://servers.openrct2.io/?check=$(date +%s%N)")
-if grep -Fq "$server_name" <<< "$server_list"; then
+if [[ "$server_list" != *'<div class="server-table">'* \
+    || "$server_list" != *'<div class="heading">Server</div>'* ]]; then
+    printf 'Error: the OpenRCT2 master-list response was not recognized.\n' >&2
+    exit 1
+fi
+if grep -Fq "<div>${server_name}</div>" <<< "$server_list"; then
     printf 'OpenRCT2 server list: %s is listed\n' "$server_name"
 else
     printf 'Error: %s is not visible on the OpenRCT2 server list yet.\n' "$server_name" >&2

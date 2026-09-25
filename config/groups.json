@@ -1,5 +1,5 @@
 {
-    "default_group": 2,
+    "default_group": 3,
     "groups": [
         {
             "id": 0,
@@ -58,6 +58,51 @@
                 "PERMISSION_PARK_PROPERTIES",
                 "PERMISSION_PARK_FUNDING",
                 "PERMISSION_TOGGLE_SCENERY_CLUSTER",
+                "PERMISSION_DRAG_PATH_AREA"
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Small pp",
+            "permissions": [
+                "PERMISSION_CHAT"
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Medium pp",
+            "permissions": [
+                "PERMISSION_CHAT",
+                "PERMISSION_CREATE_RIDE",
+                "PERMISSION_REMOVE_RIDE",
+                "PERMISSION_BUILD_RIDE",
+                "PERMISSION_RIDE_PROPERTIES",
+                "PERMISSION_SCENERY",
+                "PERMISSION_PATH",
+                "PERMISSION_DRAG_PATH_AREA"
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Large pp",
+            "permissions": [
+                "PERMISSION_CHAT",
+                "PERMISSION_TERRAFORM",
+                "PERMISSION_SET_WATER_LEVEL",
+                "PERMISSION_TOGGLE_PAUSE",
+                "PERMISSION_CREATE_RIDE",
+                "PERMISSION_REMOVE_RIDE",
+                "PERMISSION_BUILD_RIDE",
+                "PERMISSION_RIDE_PROPERTIES",
+                "PERMISSION_SCENERY",
+                "PERMISSION_PATH",
+                "PERMISSION_CLEAR_LANDSCAPE",
+                "PERMISSION_GUEST",
+                "PERMISSION_STAFF",
+                "PERMISSION_PARK_PROPERTIES",
+                "PERMISSION_PARK_FUNDING",
+                "PERMISSION_KICK_PLAYER",
+                "PERMISSION_MODIFY_TILE",
                 "PERMISSION_DRAG_PATH_AREA"
             ]
         }

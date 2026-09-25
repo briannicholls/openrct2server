@@ -7,6 +7,13 @@ cd "$ROOT_DIR"
 for script in scripts/*.sh; do
     bash -n "$script"
 done
+python3 -c 'import ast, pathlib, sys; ast.parse(pathlib.Path(sys.argv[1]).read_text())' \
+    scripts/server-info.py
+if command -v systemd-analyze >/dev/null 2>&1; then
+    systemd-analyze --user verify \
+        systemd/openrct2-watchdog.service \
+        systemd/openrct2-watchdog.timer
+fi
 
 docker compose --env-file .env.example config --quiet
 compose_config=$(docker compose --env-file .env.example config)
@@ -20,6 +27,7 @@ grep -q '^    "default_group": 2,$' config/groups.json
 grep -q '^HOST_PORT=11753$' .env.example
 grep -q '^SERVER_PORT=11753$' .env.example
 grep -q 'target: /config' <<< "$compose_config"
+grep -q 'rm -f /data/.active-resume-save /data/.startup-attempts' <<< "$compose_config"
 
 git check-ignore --quiet .env
 git check-ignore --quiet data/save/server.park

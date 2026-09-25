@@ -28,7 +28,7 @@ services:
       - ./scripts/container-entrypoint.sh:/opt/openrct2/container-entrypoint.sh:ro
     read_only: true
     tmpfs:
-      - /tmp:size=64m,mode=1777
+      - /tmp:size=512m,mode=1777
     cap_drop:
       - ALL
     pids_limit: 256
@@ -36,7 +36,7 @@ services:
     cpus: ${CPU_LIMIT:-1.0}
     stop_grace_period: 30s
     healthcheck:
-      test: ["CMD-SHELL", "timeout 3 bash -c '>/dev/tcp/127.0.0.1/${SERVER_PORT:-11753}'"]
+      test: ["CMD-SHELL", "timeout 3 bash -c '>/dev/tcp/127.0.0.1/${SERVER_PORT:-11753}' && rm -f /data/.active-resume-save /data/.startup-attempts"]
       interval: 60s
       timeout: 5s
       retries: 3

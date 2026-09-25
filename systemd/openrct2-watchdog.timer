@@ -1,0 +1,11 @@
+[Unit]
+Description=Check OpenRCT2 public registration every five minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitInactiveSec=5min
+AccuracySec=30s
+Unit=openrct2-watchdog.service
+
+[Install]
+WantedBy=timers.target

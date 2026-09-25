@@ -55,7 +55,7 @@ The Playit agent is managed independently by the enabled user service
 Requirements:
 
 - Docker Engine with the Compose plugin
-- Bash, curl, tar, and sha256sum
+- Bash, curl, Python 3, tar, and sha256sum
 - A `.park` or legacy `.sv6` save
 
 Initialize a new host without overwriting existing server state:
@@ -103,6 +103,25 @@ The service uses `restart: unless-stopped`, so Docker restores it after a host
 reboot or process failure. The container filesystem is read-only, capabilities
 are dropped, and writable paths are limited to runtime data and temporary
 files.
+
+The `openrct2-watchdog.timer` checks public registration every five minutes.
+It restarts OpenRCT2 only when local health and the Playit endpoint work but the
+server remains absent from a reachable master list for three consecutive
+checks, no players are connected, and a fresh autosave exists. Inconclusive or
+unsafe failures are logged without restarting. The supplied unit expects this
+repository at `%h/games/openrct2`; install it for the current user with:
+
+```bash
+systemctl --user link "$PWD/systemd/openrct2-watchdog.service"
+systemctl --user link "$PWD/systemd/openrct2-watchdog.timer"
+systemctl --user enable --now openrct2-watchdog.timer
+```
+
+On every start, the container resumes the newest autosave when it is newer than
+the configured base park. Watchdog recovery pins the exact fresh autosave it
+checked and never falls back silently to older park state. A deliberate
+`scripts/update.sh replacement.park` clears older autosaves, so park replacement
+still starts the supplied file.
 
 ## Backups
 
