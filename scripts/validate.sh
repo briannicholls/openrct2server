@@ -7,8 +7,10 @@ cd "$ROOT_DIR"
 for script in scripts/*.sh; do
     bash -n "$script"
 done
-python3 -c 'import ast, pathlib, sys; ast.parse(pathlib.Path(sys.argv[1]).read_text())' \
-    scripts/server-info.py
+for script in scripts/*.py; do
+    python3 -c 'import ast, pathlib, sys; ast.parse(pathlib.Path(sys.argv[1]).read_text())' "$script"
+done
+python3 scripts/package-music.py --help >/dev/null
 if command -v systemd-analyze >/dev/null 2>&1; then
     systemd-analyze --user verify \
         systemd/openrct2-watchdog.service \
@@ -21,9 +23,9 @@ compose_config=$(docker compose --env-file .env.example config)
 grep -q '^advertise = true$' config/config.ini
 grep -q '^advertise_address = "della-avoided\.tun\.ply\.gg"$' config/config.ini
 grep -q '^server_name = "{RED}\$M{WHITE}L{BABYBLUE}G{WHITE} B5 - Ultimate Fun Land"$' config/config.ini
-grep -q '^server_description = "Buy \$MLG\. Don.t focus on no girls, just buy \$MLG\."$' config/config.ini
+grep -q '^server_description = "Buy \$MLG\."$' config/config.ini
 grep -q '^known_keys_only = false$' config/config.ini
-grep -q '^    "default_group": 2,$' config/groups.json
+grep -q '^    "default_group": 3,$' config/groups.json
 grep -q '^HOST_PORT=11753$' .env.example
 grep -q '^SERVER_PORT=11753$' .env.example
 grep -q 'target: /config' <<< "$compose_config"

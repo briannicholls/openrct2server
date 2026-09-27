@@ -10,7 +10,7 @@ validate_park() {
 
     validation_dir=$(mktemp -d)
     cp /data/config.ini /data/groups.json "$validation_dir/"
-    for data_dir in object assetpack; do
+    for data_dir in object assetpack plugin; do
         [[ ! -d "/data/$data_dir" ]] || cp -a "/data/$data_dir" "$validation_dir/$data_dir"
     done
     sed -i 's/^advertise = true$/advertise = false/' "$validation_dir/config.ini"

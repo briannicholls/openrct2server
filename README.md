@@ -55,7 +55,7 @@ The Playit agent is managed independently by the enabled user service
 Requirements:
 
 - Docker Engine with the Compose plugin
-- Bash, curl, Python 3, tar, and sha256sum
+- Bash, curl, Python 3, tar, sha256sum, and ffmpeg for custom music packaging
 - A `.park` or legacy `.sv6` save
 
 Initialize a new host without overwriting existing server state:
@@ -87,6 +87,40 @@ The update command creates a full backup, stops the server, installs the park,
 clears stale autosaves, restarts the server, waits for health, and confirms the
 public server-list entry. If startup or registration fails, it restores the
 previous config, park, and `.env` and starts the prior state again.
+
+## Custom Ride Music
+
+Put the audio files for one ride-music style in:
+
+```text
+data/music/source/
+```
+
+Files are ordered by filename, and filenames become the track names shown in
+OpenRCT2. MP3, M4A, AAC, FLAC, OGG, Opus, AIFF, and WAV inputs are supported.
+Each track must be at least 39 seconds long. Only put audio there that may be
+redistributed to every player joining the server.
+
+Package and install the current files, then restart the server safely:
+
+```bash
+./scripts/package-music.py
+./scripts/update.sh
+```
+
+The packager converts every track to a padded FLAC whose file size matches its
+decoded PCM length. This keeps timing identical on the headless server and
+graphical clients while making the multiplayer download substantially smaller.
+It creates a content-hashed custom object under `data/object/` and a local
+loader under `data/plugin/`. The hash is part of the object identifier so a
+client can never silently reuse an older track with the same identifier.
+
+On the first installation, join as an administrator, open a ride's Music tab,
+enable music, and select `Ultimate Fun Land Radio`. That ride setting is shared
+with all players. The server sends the packaged object and audio to players when
+they join; playback still respects each player's ride-music volume and camera
+location. Repackaging later replaces the prior object in the same music slot,
+so rides already using that slot continue to use it.
 
 ## Operations
 

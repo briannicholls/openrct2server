@@ -56,6 +56,7 @@ umask 077
 mkdir -p \
     "$ROOT_DIR/backups" \
     "$ROOT_DIR/data/chatlogs" \
+    "$ROOT_DIR/data/music/source" \
     "$ROOT_DIR/data/object" \
     "$ROOT_DIR/data/plugin" \
     "$ROOT_DIR/data/save" \
