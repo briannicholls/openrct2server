@@ -410,6 +410,7 @@ def pad_ogg_to_pcm_size(encoded: bytes, pcm_size: int, name: str) -> bytes:
         result.extend(serialise_ogg_page(page, sequence))
         sequence += 1
 
+    # OGG page overhead leaves small size gaps; Vorbis ignores bytes after the EOS page.
     result.extend(bytes(pcm_size - len(result)))
     if len(result) != pcm_size:
         raise PackagingError(f"Vorbis padding produced the wrong size for {name}.")
@@ -583,6 +584,7 @@ def main() -> int:
                     json.dumps(object_definition, ensure_ascii=False, indent=4) + "\n",
                 )
                 for _, internal_path, encoded_path in tracks:
+                    # The network park compresses the padding; storing it here keeps ZIP seeks cheap.
                     package.write(encoded_path, internal_path, compress_type=zipfile.ZIP_STORED)
             os.chmod(temporary_package_name, 0o600)
             os.replace(temporary_package_name, output_file)

@@ -108,12 +108,14 @@ Package and install the current files, then restart the server safely:
 ./scripts/update.sh
 ```
 
-The packager converts every track to a padded FLAC whose file size matches its
-decoded PCM length. This keeps timing identical on the headless server and
-graphical clients while making the multiplayer download substantially smaller.
-It creates a content-hashed custom object under `data/object/` and a local
-loader under `data/plugin/`. The hash is part of the object identifier so a
-client can never silently reuse an older track with the same identifier.
+The packager converts every track to padded OGG/Vorbis whose file size matches
+its decoded PCM length. The audio members are stored inside the object so the
+network save can compress their metadata padding from roughly 29 MB to about
+4 MB. This keeps timing identical on the headless server and graphical clients
+without making object loading seek through nested compression. It creates a
+content-hashed custom object under `data/object/` and a local loader under
+`data/plugin/`. The hash is part of the object identifier so a client can never
+silently reuse an older track with the same identifier.
 
 On the first installation, join as an administrator, open a ride's Music tab,
 enable music, and select `Ultimate Fun Land Radio`. That ride setting is shared
